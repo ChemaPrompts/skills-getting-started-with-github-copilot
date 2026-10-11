@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
+        activityCard.dataset.activityName = name;
 
         const spotsLeft = details.max_participants - details.participants.length;
 
@@ -24,9 +25,37 @@ document.addEventListener("DOMContentLoaded", () => {
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <p class="activity-availability" data-max-participants="${details.max_participants}">
+            <strong>Availability:</strong> ${spotsLeft} spots left
+          </p>
         `;
 
+        const participantsSection = document.createElement("div");
+        participantsSection.className = "participants-section";
+
+        const participantsHeading = document.createElement("h5");
+        participantsHeading.className = "participants-heading";
+        participantsHeading.textContent = `Participants (${details.participants.length})`;
+
+        const participantsList = document.createElement("ul");
+        participantsList.className = "participants-list";
+        participantsList.dataset.participants = "";
+
+        if (details.participants.length === 0) {
+          const emptyMessage = document.createElement("li");
+          emptyMessage.className = "participants-empty";
+          emptyMessage.textContent = "No participants yet";
+          participantsList.appendChild(emptyMessage);
+        } else {
+          details.participants.forEach((participant) => {
+            const participantItem = document.createElement("li");
+            participantItem.textContent = participant;
+            participantsList.appendChild(participantItem);
+          });
+        }
+
+        participantsSection.append(participantsHeading, participantsList);
+        activityCard.appendChild(participantsSection);
         activitiesList.appendChild(activityCard);
 
         // Add option to select dropdown
@@ -61,6 +90,27 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response.ok) {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
+
+        const activityCard = [...activitiesList.querySelectorAll(".activity-card")]
+          .find((card) => card.dataset.activityName === activity);
+        const participantsList = activityCard?.querySelector("[data-participants]");
+        const participantsHeading = activityCard?.querySelector(".participants-heading");
+        const availability = activityCard?.querySelector(".activity-availability");
+
+        if (participantsList && participantsHeading && availability) {
+          participantsList.querySelector(".participants-empty")?.remove();
+          const participantItem = document.createElement("li");
+          participantItem.textContent = email;
+          participantsList.appendChild(participantItem);
+          participantsHeading.textContent = `Participants (${participantsList.children.length})`;
+
+          const maxParticipants = Number(availability.dataset.maxParticipants);
+          const spotsLeft = maxParticipants - participantsList.children.length;
+          const availabilityLabel = document.createElement("strong");
+          availabilityLabel.textContent = "Availability:";
+          availability.replaceChildren(availabilityLabel, ` ${spotsLeft} spots left`);
+        }
+
         signupForm.reset();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
